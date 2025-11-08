@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("BindSharp.Test")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+ed7744450f55c1c335d358096d0411565e7f76fa")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+318f2a4a8fc8927b7597359983d631efda2f52a8")]
 [assembly: System.Reflection.AssemblyProductAttribute("BindSharp.Test")]
 [assembly: System.Reflection.AssemblyTitleAttribute("BindSharp.Test")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
