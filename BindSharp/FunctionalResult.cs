@@ -112,37 +112,34 @@ public static class FunctionalResult
         result.IsSuccess ? mapValue(result.Value) : mapError(result.Error);
     
     /// <summary>
-    /// Conditionally continues processing or returns early based on a predicate.
-    /// If the predicate returns true, the current value is returned unchanged (short-circuit).
-    /// If the predicate returns false, the continuation function is applied.
-    /// This enables conditional branching in functional pipelines without breaking the chain.
+    /// Conditionally applies a continuation function based on a predicate.
+    /// If the predicate returns true, the continuation function is applied.
+    /// If the predicate returns false, the original result is returned unchanged (short-circuit).
+    /// This enables conditional processing in functional pipelines.
     /// </summary>
     /// <typeparam name="T">The type of the success value.</typeparam>
     /// <typeparam name="TError">The type of the error value.</typeparam>
     /// <param name="result">The result to evaluate.</param>
     /// <param name="predicate">The condition to check against the success value.</param>
-    /// <param name="continuation">The function to apply if the predicate returns false.</param>
+    /// <param name="continuation">The function to apply if the predicate returns true.</param>
     /// <returns>
-    /// The original result unchanged if the predicate returns true,
-    /// the result of the continuation function if the predicate returns false,
+    /// The result of the continuation function if the predicate returns true,
+    /// the original result unchanged if the predicate returns false,
     /// or the original error if the result was already failed.
     /// </returns>
     /// <example>
     /// <code>
-    /// // Extract JSON that might be prefixed with "request:id:"
-    /// var result = GetPayload()
-    ///     .Map(p => p.TrimStart())
+    /// // Process data only if it needs processing
+    /// var result = GetData()
     ///     .BindIf(
-    ///         // If already JSON, return as-is
-    ///         p => p.StartsWith("{") || p.StartsWith("["),
-    ///         // Otherwise, extract JSON from prefixed format
-    ///         p => ExtractJsonAfterPrefix(p)
+    ///         data => data.NeedsProcessing,
+    ///         data => ProcessData(data)
     ///     );
     /// 
-    /// // Validation with optional enrichment
+    /// // Multiple conditional steps
     /// var validated = GetUser()
     ///     .BindIf(
-    ///         user => user.IsComplete,
+    ///         user => !user.IsComplete,
     ///         user => EnrichFromDatabase(user)  // Only enrich incomplete users
     ///     );
     /// </code>
@@ -155,7 +152,7 @@ public static class FunctionalResult
         if (result.IsFailure) return result;
     
         return predicate(result.Value) 
-            ? result 
-            : continuation(result.Value);
+            ? continuation(result.Value)
+            : result;
     }
 }

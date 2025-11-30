@@ -1,31 +1,31 @@
-# BindSharp 1.4.0 Release Notes
+# BindSharp 1.4.1 Release Notes
 
 ## 🎉 What's New
 
-Version 1.4.0 introduces **conditional branching** to functional pipelines, enabling you to create clean short-circuit logic without breaking your Railway-Oriented Programming chains.
+Version 1.4.1 introduces **conditional processing** to functional pipelines, enabling you to create clean if-then logic without breaking your Railway-Oriented Programming chains.
 
 ### New Feature: BindIf / BindIfAsync
 
 **The Problem:**
-Previously, when you needed conditional logic in a pipeline (e.g., "if already valid, skip processing"), you had to break the chain or use awkward workarounds:
+Previously, when you needed conditional logic in a pipeline (e.g., "if needs processing, then process"), you had to break the chain or use awkward workarounds:
 ```csharp
 // ❌ Before: Awkward nested Bind
 var result = GetPayload()
     .Bind(payload => 
-        payload.StartsWith("{") 
-            ? Result<string, string>.Success(payload)  // Already JSON
-            : ExtractJsonFromPrefix(payload)           // Extract it
+        payload.NeedsProcessing
+            ? ProcessPayload(payload)           // Process it
+            : Result<string, string>.Success(payload)  // Return as-is
     );
 ```
 
 **The Solution:**
-`BindIf` provides clean conditional branching:
+`BindIf` provides clean conditional processing with standard if-then behavior:
 ```csharp
-// ✅ After: Clean and readable
+// ✅ After: Clean and intuitive
 var result = GetPayload()
     .BindIf(
-        payload => payload.StartsWith("{"),  // If already JSON
-        payload => ExtractJsonFromPrefix(payload)  // Otherwise extract
+        payload => payload.NeedsProcessing,  // If TRUE
+        payload => ProcessPayload(payload)   // Then execute
     );
 ```
 
@@ -44,9 +44,11 @@ public static Result<T, TError> BindIf<T, TError>(
 ```
 
 Conditionally applies a continuation function based on a predicate:
-- If predicate returns **true** → returns original result unchanged (short-circuit)
-- If predicate returns **false** → applies continuation function
+- If predicate returns **true** → applies continuation function
+- If predicate returns **false** → returns original result unchanged (short-circuit)
 - If result is already failed → propagates error without evaluating predicate
+
+**Standard if-then behavior:** Works like a regular `if` statement in functional pipelines.
 
 ### AsyncFunctionalResult
 
@@ -68,60 +70,71 @@ This matches BindSharp's comprehensive async pattern seen in `MatchAsync`.
 
 ## 💡 Usage Examples
 
-### Example 1: JSON Extraction with Short-Circuit
+### Example 1: Conditional Enrichment
 ```csharp
-// Extract JSON that might be prefixed with "request:id:"
-public Result<string, string> ExtractJson(string payload)
-{
-    return Result<string, string>.Success(payload)
-        .Map(p => p.TrimStart())
-        .BindIf(
-            // If already JSON, return as-is
-            p => p.StartsWith("{") || p.StartsWith("["),
-            // Otherwise, extract from prefixed format
-            p => ExtractJsonAfterPrefix(p)
-        )
-        .Ensure(json => !string.IsNullOrEmpty(json), "JSON cannot be empty");
-}
-```
-
-### Example 2: Conditional User Enrichment
-```csharp
+// Enrich user data only if incomplete
 public async Task<Result<User, string>> GetUserAsync(int id)
 {
     return await FetchUserAsync(id)
         .BindIfAsync(
-            user => user.IsComplete,
-            async user => await EnrichFromDatabaseAsync(user)
+            user => !user.IsComplete,  // If incomplete (TRUE)
+            async user => await EnrichFromDatabaseAsync(user)  // Then enrich
         )
         .TapAsync(async user => await CacheUserAsync(user));
 }
 ```
 
-### Example 3: Async Predicate (Database Check)
+### Example 2: Conditional Validation
 ```csharp
+// Validate order only if it requires validation
 public async Task<Result<Order, string>> ProcessOrderAsync(Order order)
 {
     return await Result<Order, string>.Success(order)
         .BindIfAsync(
-            // Async database check
-            async o => await IsOrderValidInDatabaseAsync(o.Id),
-            // If invalid, enrich from external API
-            async o => await EnrichFromExternalApiAsync(o)
+            async o => await RequiresValidationAsync(o.Id),  // If needs validation
+            async o => await ValidateOrderAsync(o)           // Then validate
         )
         .BindAsync(async o => await SaveOrderAsync(o));
 }
 ```
 
-### Example 4: Complete Pipeline
+### Example 3: JSON Extraction
+```csharp
+// Extract JSON only if payload is NOT already JSON
+public Result<string, string> ExtractJson(string payload)
+{
+    return Result<string, string>.Success(payload)
+        .Map(p => p.TrimStart())
+        .BindIf(
+            p => !(p.StartsWith("{") || p.StartsWith("[")),  // If NOT JSON
+            p => ExtractJsonAfterPrefix(p)                    // Then extract
+        )
+        .Ensure(json => !string.IsNullOrEmpty(json), "JSON cannot be empty");
+}
+```
+
+### Example 4: Caching Pattern
+```csharp
+// Fetch from source only if not cached
+public async Task<Result<Data, string>> GetDataAsync(string key)
+{
+    return await CheckCacheAsync(key)
+        .BindIfAsync(
+            cached => cached == null,  // If not cached (TRUE)
+            async _ => await FetchFromSourceAsync(key)  // Then fetch
+        )
+        .TapAsync(async data => await UpdateCacheAsync(key, data));
+}
+```
+
+### Example 5: Complete Pipeline
 ```csharp
 public async Task<Result<ProcessedData, string>> ProcessDataAsync(string input)
 {
     return await ValidateInput(input)
         .MapAsync(async data => await NormalizeDataAsync(data))
         .BindIfAsync(
-            // Skip expensive operation if already cached
-            async data => await IsCachedAsync(data.Id),
+            async data => await RequiresExpensiveProcessingAsync(data.Id),
             async data => await ExpensiveProcessingAsync(data)
         )
         .TapAsync(async data => await LogProcessingAsync(data))
@@ -134,40 +147,41 @@ public async Task<Result<ProcessedData, string>> ProcessDataAsync(string input)
 ## 🎯 When to Use BindIf
 
 ### ✅ Use BindIf When:
-- You need conditional logic without breaking the chain
-- You want to skip processing if a condition is already met
-- You need short-circuit evaluation in pipelines
-- You're implementing validation with optional enrichment
-- You want to avoid nested `Bind` calls
+- You need conditional execution without breaking the chain
+- "If condition is true, then do something"
+- You need standard if-then logic in functional pipelines
+- Processing is expensive and should be skipped when unnecessary
+- You want to avoid nested `Bind` calls for conditions
 
 ### ✅ Perfect For:
-- **Format detection** - "If already correct format, skip conversion"
-- **Caching** - "If cached, skip expensive fetch"
-- **Validation** - "If valid, skip repair logic"
-- **Enrichment** - "If complete, skip additional data fetch"
-- **Optimization** - "If fast path available, skip slow path"
+- **Conditional processing** - "If needs processing, then process"
+- **Enrichment** - "If incomplete, then enrich from database"
+- **Validation** - "If invalid, then apply fixes"
+- **Caching** - "If not cached, then fetch from source"
+- **Optimization** - "If expensive path needed, then execute"
 
 ### ❌ Don't Use BindIf When:
-- Simple validation is better handled by `Ensure`
+- You need validation that fails (use `Ensure` instead)
 - You need to change the result type (use `Bind` instead)
 - You're doing pure transformation (use `Map` instead)
-- The condition doesn't affect the continuation
+- You need side effects without conditions (use `Tap` instead)
 
 ---
 
 ## 🔄 Comparison with Other Methods
 
-| Method | Use Case | Changes Result Type? | Executes on Condition? |
+| Method | Use Case | Changes Result Type? | Executes Continuation? |
 |--------|----------|---------------------|------------------------|
 | `Map` | Transform value | Yes | Always (on success) |
 | `Bind` | Chain operations | Yes | Always (on success) |
-| `Ensure` | Validate condition | No | Always (on success) |
-| `BindIf` | Conditional continuation | No | Only if predicate false |
+| `Ensure` | Validate condition | No | Never (validates only) |
+| `BindIf` | Conditional execution | No | Only if predicate TRUE |
 | `Tap` | Side effects | No | Always (on success) |
 
-**Key Difference:**
-- `Ensure` fails if condition is false
-- `BindIf` continues processing if condition is false
+**Key Differences:**
+- `Ensure` - Fails if condition is false (validation)
+- `BindIf` - Executes continuation if condition is true (conditional processing)
+- `Tap` - Always executes (side effects)
 
 ---
 
@@ -175,7 +189,7 @@ public async Task<Result<ProcessedData, string>> ProcessDataAsync(string input)
 
 - **Zero allocation overhead** for sync versions
 - **Async versions** follow standard Task patterns
-- **Short-circuit optimization** - continuation not called if predicate is true
+- **Short-circuit optimization** - continuation not called if predicate is false
 - **Predicate evaluated only once** per invocation
 
 ---
@@ -195,10 +209,10 @@ var result = GetData()
 
 ### What You Can Now Do:
 ```csharp
-// New conditional branching
+// New conditional processing
 var result = GetData()
     .Map(x => x * 2)
-    .BindIf(x => x > 100, x => ProcessLargeValue(x))
+    .BindIf(x => x > 100, x => ProcessLargeValue(x))  // If > 100, process
     .Ensure(x => x > 0, "Must be positive");
 ```
 
@@ -208,7 +222,7 @@ var result = GetData()
 
 - Added `BindIf` section to README.md
 - Added 7 async overloads documentation
-- Added real-world examples for conditional branching
+- Added real-world examples for conditional processing
 - Updated API reference
 
 ---
@@ -216,18 +230,18 @@ var result = GetData()
 ## 🧪 Testing
 
 - 48 comprehensive unit tests covering all overloads
-- Tests for predicate evaluation short-circuiting
-- Tests for continuation non-execution when predicate is true
+- Tests for predicate evaluation and continuation execution
+- Tests for short-circuiting when predicate is false
 - Tests for error propagation
-- Real-world scenario tests (JSON extraction, user enrichment)
+- Real-world scenario tests (JSON extraction, user enrichment, caching)
 
 ---
 
 ## 📋 Changelog
 
 ### Added
-- `BindIf<T, TError>` - Conditional continuation in functional pipelines
-- `BindIfAsync<T, TError>` (7 overloads) - Full async support for conditional branching
+- `BindIf<T, TError>` - Conditional processing in functional pipelines
+- `BindIfAsync<T, TError>` (7 overloads) - Full async support for conditional processing
   - Task\<Result\> + sync predicate + sync continuation
   - Result + sync predicate + async continuation
   - Task\<Result\> + sync predicate + async continuation
@@ -252,25 +266,66 @@ var result = GetData()
 ## 🎓 Best Practices
 
 ### DO:
-✅ Use `BindIf` for conditional short-circuiting  
+✅ Use `BindIf` for conditional execution ("if X, then Y")  
 ✅ Use async predicates when condition requires I/O (database, cache)  
 ✅ Combine with other Result methods for complex pipelines  
 ✅ Keep predicates simple and side-effect free  
+✅ Think of it as standard `if` statements in functional style  
 
 ### DON'T:
-❌ Use `BindIf` when `Ensure` is more appropriate (validation)  
+❌ Use `BindIf` when `Ensure` is more appropriate (validation that should fail)  
 ❌ Put complex logic in predicates (extract to named methods)  
 ❌ Modify state in predicates (keep them pure)  
 ❌ Use when you need to change the result type (use `Bind`)  
 
 ---
 
+## 💡 Pattern Examples
+
+### Pattern 1: Conditional Enrichment
+```csharp
+// "If incomplete, then enrich"
+.BindIfAsync(
+    entity => !entity.IsComplete,
+    async entity => await EnrichAsync(entity)
+)
+```
+
+### Pattern 2: Negative Conditions
+```csharp
+// "If NOT already processed, then process"
+.BindIf(
+    data => !data.IsProcessed,
+    data => ProcessData(data)
+)
+```
+
+### Pattern 3: Async Database Checks
+```csharp
+// "If requires validation (async check), then validate"
+.BindIfAsync(
+    async order => await RequiresValidationAsync(order.Id),
+    async order => await ValidateAsync(order)
+)
+```
+
+### Pattern 4: Caching
+```csharp
+// "If not in cache, then fetch"
+.BindIfAsync(
+    async key => !await ExistsInCacheAsync(key),
+    async key => await FetchFromSourceAsync(key)
+)
+```
+
+---
+
 ## 🔗 Related Methods
 
-- **`Bind`** - Chain operations that can fail (always executes)
+- **`Bind`** - Chain operations that can fail (always executes on success)
 - **`Ensure`** - Validate conditions (fails if false)
-- **`Map`** - Transform success values (always executes)
-- **`Tap`** - Execute side effects (always executes)
+- **`Map`** - Transform success values (always executes on success)
+- **`Tap`** - Execute side effects (always executes on success)
 
 ---
 
@@ -278,10 +333,10 @@ var result = GetData()
 
 1. **Update your package:**
 ```bash
-   dotnet add package BindSharp --version 1.4.0
+   dotnet add package BindSharp --version 1.4.1
 ```
 
-2. **Explore conditional branching** in your pipelines
+2. **Explore conditional processing** in your pipelines
 
 3. **Simplify existing code** that uses nested `Bind` for conditionals
 
@@ -310,12 +365,12 @@ Special thanks to all contributors and users who helped shape this release.
 
 ## 🎉 Conclusion
 
-Version 1.4.0 brings powerful conditional branching to BindSharp's functional pipelines:
-- ✅ Clean short-circuit logic
+Version 1.4.1 brings intuitive conditional processing to BindSharp's functional pipelines:
+- ✅ Standard if-then logic in Railway-Oriented Programming
 - ✅ Full async support (7 overloads)
 - ✅ Zero breaking changes
-- 🎯 More expressive Railway-Oriented Programming
+- 🎯 More expressive and readable functional code
 
-Upgrade today and enjoy cleaner, more expressive functional code!
+Upgrade today and enjoy cleaner, more intuitive functional code!
 
 Happy coding! 🚀

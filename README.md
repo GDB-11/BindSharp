@@ -30,25 +30,26 @@ return await FetchDataAsync()
     );
 ```
 
-## ✨ What's New in 1.4.0
+## ✨ What's New in 1.4.1
 
-**Conditional Branching** - Clean short-circuit logic in functional pipelines:
+**Conditional Processing** - Execute operations based on conditions in functional pipelines:
 
-- ✅ **BindIf / BindIfAsync** - Conditional processing without breaking chains!
+- ✅ **BindIf / BindIfAsync** - Standard if-then logic in Railway-Oriented Programming!
 - ✅ **7 Async Overloads** - Full async support including async predicates
 - ✅ **Database-Backed Conditions** - Async predicates for I/O operations
-- 🎯 **Cleaner Pipelines** - No more nested `Bind` for conditionals
+- 🎯 **Intuitive Behavior** - Works like standard `if` statements
 
 **Example:**
 ```csharp
+// If user is incomplete, then enrich
 var result = await GetUserAsync(id)
     .BindIfAsync(
-        user => user.IsComplete,  // If complete, skip
-        async user => await EnrichUserAsync(user)  // Otherwise, enrich
+        user => !user.IsComplete,  // If TRUE
+        async user => await EnrichUserAsync(user)  // Then execute
     );
 ```
 
-See the [BindIf](#bindif---conditional-branching) section below!
+See the [BindIf](#bindif---conditional-processing) section below!
 
 **Previous Releases:**
 - **Version 1.3.0** added [Equality Support & Implicit Conversions](#equality-support)
@@ -58,7 +59,7 @@ See the [BindIf](#bindif---conditional-branching) section below!
 ## Features
 
 ✅ **Result<T, TError>** - Explicit success/failure handling  
-✅ **BindIf** - Conditional branching in pipelines  
+✅ **BindIf** - Conditional processing in pipelines  
 ✅ **Equality Support** - Compare Results, use in collections  
 ✨ **Implicit Conversions** - Clean, concise syntax  
 ✅ **Unit Type** - Represent "no value" in functional pipelines  
@@ -106,7 +107,6 @@ if (success == success2)  // ✅ TRUE!
 ## Equality Support
 
 **New in 1.3.0!** Results now implement `IEquatable<Result<T, TError>>` for proper value equality:
-
 ```csharp
 var r1 = Result<int, string>.Success(42);
 var r2 = Result<int, string>.Success(42);
@@ -217,7 +217,6 @@ public Result<User, string> CreateUser(CreateUserRequest request)
 ## ⚠️ CRITICAL: Implicit Conversions Warning
 
 **NEVER use the same type for both `T` and `TError`** - this creates ambiguity:
-
 ```csharp
 // ❌ NEVER DO THIS - Ambiguous!
 public Result<string, string> GetValue()
@@ -439,24 +438,23 @@ public Result<Order, LocalizedError> GetOrder(int id)
 }
 ```
 
-### BindIf - Conditional Branching
+### BindIf - Conditional Processing
 
-**New in 1.4.0!** Conditionally continue processing or short-circuit based on a predicate:
+**New in 1.4.1!** Execute operations conditionally based on a predicate:
 ```csharp
-// Extract JSON that might be prefixed with "request:id:"
-var result = GetPayload()
-    .Map(p => p.TrimStart())
+// Process data only if it needs processing
+var result = GetData()
     .BindIf(
-        // If already JSON, return as-is (short-circuit)
-        p => p.StartsWith("{") || p.StartsWith("["),
-        // Otherwise, extract from prefixed format
-        p => ExtractJsonAfterPrefix(p)
+        data => data.RequiresProcessing,  // If TRUE
+        data => ProcessData(data)         // Then execute
     );
+// If predicate is FALSE, returns data unchanged
 ```
 
-**Key Difference from Ensure:**
-- `Ensure` - Validates and **fails** if condition is false
-- `BindIf` - **Continues processing** if condition is false
+**How it works:**
+- Predicate returns **TRUE** → Continuation executes
+- Predicate returns **FALSE** → Original result returned unchanged (short-circuit)
+- Result is already failed → Error propagates without evaluating predicate
 
 **Real-world example - Conditional enrichment:**
 ```csharp
@@ -464,11 +462,22 @@ public async Task<Result<User, string>> GetUserAsync(int id)
 {
     return await FetchUserAsync(id)
         .BindIfAsync(
-            user => user.IsComplete,  // If complete, skip enrichment
-            async user => await EnrichFromDatabaseAsync(user)  // Otherwise, enrich
+            user => !user.IsComplete,  // If incomplete (TRUE)
+            async user => await EnrichFromDatabaseAsync(user)  // Then enrich
         )
         .TapAsync(async user => await CacheUserAsync(user));
 }
+```
+
+**Example - JSON extraction:**
+```csharp
+// Extract JSON only if it's NOT already in JSON format
+var result = GetPayload()
+    .Map(p => p.TrimStart())
+    .BindIf(
+        p => !(p.StartsWith("{") || p.StartsWith("[")),  // If NOT JSON (TRUE)
+        p => ExtractJsonAfterPrefix(p)                    // Then extract
+    );
 ```
 
 **With async predicates (database checks):**
@@ -477,11 +486,15 @@ public async Task<Result<Order, string>> ProcessOrderAsync(Order order)
 {
     return await Result<Order, string>.Success(order)
         .BindIfAsync(
-            async o => await IsValidInCacheAsync(o.Id),  // Async check
-            async o => await FetchFromDatabaseAsync(o)   // Fallback
+            async o => await RequiresValidationAsync(o.Id),  // Async check
+            async o => await ValidateOrderAsync(o)           // Then validate
         );
 }
 ```
+
+**Key Difference from Ensure:**
+- `Ensure` - Validates and **fails** if condition is false
+- `BindIf` - **Executes continuation** if condition is true, skips if false
 
 ## 🚀 Async Support - The Game Changer!
 
@@ -588,7 +601,6 @@ BindSharp 1.1.0 adds **ResultExtensions** - practical utilities that handle comm
 ### Try / TryAsync - Exception Handling
 
 Convert exception-based code into Results:
-
 ```csharp
 // Synchronous
 var result = ResultExtensions.Try(
@@ -634,7 +646,6 @@ var result = ResultExtensions.Try(
 ### Ensure / EnsureAsync - Validation
 
 Add validation checks without breaking your pipeline:
-
 ```csharp
 var result = GetUserAge()
     .Ensure(age => age >= 18, "Must be 18 or older")
@@ -668,7 +679,6 @@ public async Task<Result<Account, string>> CreateAccountAsync(string email)
 ### EnsureNotNull - Null Safety
 
 Convert nullable checks into Results:
-
 ```csharp
 Result<User?, string> maybeUser = FindUser(id);
 Result<User, string> user = maybeUser.EnsureNotNull("User not found");
@@ -683,7 +693,6 @@ var result = await GetUserFromCacheAsync(id)
 ### ToResult - Nullable Conversion
 
 Convert nullable values to Results:
-
 ```csharp
 string? cached = _cache.Get("key");
 var result = cached.ToResult("Value not found in cache");
@@ -713,7 +722,6 @@ public Result<Product, string> GetProductFromSession(HttpContext context)
 ### Tap / TapAsync - Side Effects
 
 Execute side effects (logging, metrics, notifications) without modifying the Result:
-
 ```csharp
 var result = await ProcessOrderAsync(order)
     .TapAsync(async o => await _logger.LogInfoAsync($"Order {o.Id} processed"))
@@ -741,7 +749,6 @@ public async Task<Result<User, string>> UpdateUserAsync(int id, UpdateUserReques
 ### Using / UsingAsync - Resource Management
 
 Safe resource management with guaranteed disposal (the "bracket" pattern):
-
 ```csharp
 var data = OpenFile("data.txt")
     .Using(stream => ReadAllData(stream));
@@ -786,7 +793,6 @@ public async Task<Result<Order, string>> CreateOrderWithTransactionAsync(CreateO
 ### AsTask - Sync to Async Conversion
 
 Convert synchronous Results to Task-wrapped Results:
-
 ```csharp
 Result<int, string> syncResult = Validate(value);
 Task<Result<int, string>> asyncResult = syncResult.AsTask();
@@ -806,8 +812,7 @@ public Task<Result<User, string>> GetUserAsync(int id)
 
 ## Complete Real-World Example
 
-Here's how everything comes together with all the new 1.3.0 features:
-
+Here's how everything comes together with all the features:
 ```csharp
 public class OrderService
 {
@@ -828,6 +833,12 @@ public class OrderService
             .TapAsync(async c => await _logger.LogInfoAsync($"Processing cart {c.Id}"))
             .BindAsync(async c => await CalculatePriceAsync(c))
             .TapAsync(async c => await _metrics.IncrementAsync("orders.pricing.completed"))
+            
+            // Conditional processing (new in 1.4.1!)
+            .BindIfAsync(
+                async order => await RequiresSpecialHandlingAsync(order),
+                async order => await ApplySpecialHandlingAsync(order)
+            )
             
             // Payment with resource management
             .BindAsync(async order => await ProcessPaymentWithTransactionAsync(order))
@@ -886,6 +897,12 @@ public class OrderService
 13. **Use Tap for side effects** - Logging, metrics, notifications
 14. **Use Using for resources** - Database connections, file streams, transactions
 15. **Use ToResult for nullables** - Convert optional values to Results
+
+### BindIf (NEW in 1.4.1)
+16. **Use BindIf for conditional execution** - "If condition, then execute"
+17. **Keep predicates side-effect free** - Predicates should be pure functions
+18. **Use async predicates for I/O** - Database checks, cache lookups, etc.
+19. **Remember: TRUE executes, FALSE skips** - Standard if-then behavior
 
 ### Error Handling Strategy
 ```csharp
@@ -946,14 +963,14 @@ return await GetUserAsync(id)
 ### FunctionalResult (Core Operations)
 - `Map<T1, T2, TError>` - Transform success value
 - `Bind<T1, T2, TError>` - Chain operations that can fail
-- `BindIf<T, TError>` - Conditional branching (new in 1.4.0!)
+- `BindIf<T, TError>` - Conditional processing (new in 1.4.1!)
 - `MapError<T, TError, TNewError>` - Transform error value
 - `Match<T, TError, TResult>` - Handle both success and failure
 
 ### AsyncFunctionalResult (Async Core)
 - `MapAsync<T1, T2, TError>` - Async transformations (3 overloads)
 - `BindAsync<T1, T2, TError>` - Async chaining (3 overloads)
-- `BindIfAsync<T, TError>` - Async conditional branching (7 overloads - new in 1.4.0!)
+- `BindIfAsync<T, TError>` - Async conditional processing (7 overloads - new in 1.4.1!)
 - `MapErrorAsync<T, TError, TNewError>` - Async error transformation (3 overloads)
 - `MatchAsync<T, TError, TResult>` - Async result handling (7 overloads)
 

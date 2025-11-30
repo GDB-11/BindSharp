@@ -22,10 +22,26 @@ public class BindIfTests
     #region BindIf (Synchronous)
 
     [Fact]
-    public void BindIf_WhenPredicateTrue_ReturnsOriginalResult()
+    public void BindIf_WhenPredicateTrue_AppliesContinuation()
     {
         // Arrange
         var result = Success(10);
+
+        // Act
+        var output = result.BindIf(
+            x => x > 5,
+            x => Success(x * 2));
+
+        // Assert
+        Assert.True(output.IsSuccess);
+        Assert.Equal(20, output.Value); // Continuation applied: 10 * 2
+    }
+
+    [Fact]
+    public void BindIf_WhenPredicateFalse_ReturnsOriginalResult()
+    {
+        // Arrange
+        var result = Success(3);
         var continuationCalled = false;
 
         // Act
@@ -38,24 +54,8 @@ public class BindIfTests
 
         // Assert
         Assert.True(output.IsSuccess);
-        Assert.Equal(10, output.Value);
+        Assert.Equal(3, output.Value); // Original value unchanged
         Assert.False(continuationCalled);
-    }
-
-    [Fact]
-    public void BindIf_WhenPredicateFalse_AppliesContinuation()
-    {
-        // Arrange
-        var result = Success(3);
-
-        // Act
-        var output = result.BindIf(
-            x => x > 5,
-            x => Success(x * 2));
-
-        // Assert
-        Assert.True(output.IsSuccess);
-        Assert.Equal(6, output.Value);
     }
 
     [Fact]
@@ -88,11 +88,11 @@ public class BindIfTests
     public void BindIf_WhenContinuationFails_ReturnsFailure()
     {
         // Arrange
-        var result = Success(3);
+        var result = Success(10);
 
         // Act
         var output = result.BindIf(
-            x => x > 5,
+            x => x > 5,  // TRUE
             x => Failure("Continuation error"));
 
         // Assert
@@ -105,10 +105,26 @@ public class BindIfTests
     #region BindIfAsync - Task<Result> + Sync Predicate + Sync Continuation
 
     [Fact]
-    public async Task BindIfAsync_TaskResult_SyncPredicate_SyncContinuation_WhenPredicateTrue_ReturnsOriginal()
+    public async Task BindIfAsync_TaskResult_SyncPredicate_SyncContinuation_WhenPredicateTrue_AppliesContinuation()
     {
         // Arrange
         var result = SuccessAsync(10);
+
+        // Act
+        var output = await result.BindIfAsync(
+            x => x > 5,
+            x => Success(x * 2));
+
+        // Assert
+        Assert.True(output.IsSuccess);
+        Assert.Equal(20, output.Value);
+    }
+
+    [Fact]
+    public async Task BindIfAsync_TaskResult_SyncPredicate_SyncContinuation_WhenPredicateFalse_ReturnsOriginal()
+    {
+        // Arrange
+        var result = SuccessAsync(3);
         var continuationCalled = false;
 
         // Act
@@ -121,24 +137,8 @@ public class BindIfTests
 
         // Assert
         Assert.True(output.IsSuccess);
-        Assert.Equal(10, output.Value);
+        Assert.Equal(3, output.Value);
         Assert.False(continuationCalled);
-    }
-
-    [Fact]
-    public async Task BindIfAsync_TaskResult_SyncPredicate_SyncContinuation_WhenPredicateFalse_AppliesContinuation()
-    {
-        // Arrange
-        var result = SuccessAsync(3);
-
-        // Act
-        var output = await result.BindIfAsync(
-            x => x > 5,
-            x => Success(x * 2));
-
-        // Assert
-        Assert.True(output.IsSuccess);
-        Assert.Equal(6, output.Value);
     }
 
     [Fact]
@@ -162,10 +162,29 @@ public class BindIfTests
     #region BindIfAsync - Result + Sync Predicate + Async Continuation
 
     [Fact]
-    public async Task BindIfAsync_Result_SyncPredicate_AsyncContinuation_WhenPredicateTrue_ReturnsOriginal()
+    public async Task BindIfAsync_Result_SyncPredicate_AsyncContinuation_WhenPredicateTrue_AppliesContinuation()
     {
         // Arrange
         var result = Success(10);
+
+        // Act
+        var output = await result.BindIfAsync(
+            x => x > 5,
+            async x => {
+                await Task.Delay(1);
+                return Success(x * 2);
+            });
+
+        // Assert
+        Assert.True(output.IsSuccess);
+        Assert.Equal(20, output.Value);
+    }
+
+    [Fact]
+    public async Task BindIfAsync_Result_SyncPredicate_AsyncContinuation_WhenPredicateFalse_ReturnsOriginal()
+    {
+        // Arrange
+        var result = Success(3);
         var continuationCalled = false;
 
         // Act
@@ -179,27 +198,8 @@ public class BindIfTests
 
         // Assert
         Assert.True(output.IsSuccess);
-        Assert.Equal(10, output.Value);
+        Assert.Equal(3, output.Value);
         Assert.False(continuationCalled);
-    }
-
-    [Fact]
-    public async Task BindIfAsync_Result_SyncPredicate_AsyncContinuation_WhenPredicateFalse_AppliesContinuation()
-    {
-        // Arrange
-        var result = Success(3);
-
-        // Act
-        var output = await result.BindIfAsync(
-            x => x > 5,
-            async x => {
-                await Task.Delay(1);
-                return Success(x * 2);
-            });
-
-        // Assert
-        Assert.True(output.IsSuccess);
-        Assert.Equal(6, output.Value);
     }
 
     [Fact]
@@ -226,10 +226,29 @@ public class BindIfTests
     #region BindIfAsync - Task<Result> + Sync Predicate + Async Continuation
 
     [Fact]
-    public async Task BindIfAsync_TaskResult_SyncPredicate_AsyncContinuation_WhenPredicateTrue_ReturnsOriginal()
+    public async Task BindIfAsync_TaskResult_SyncPredicate_AsyncContinuation_WhenPredicateTrue_AppliesContinuation()
     {
         // Arrange
         var result = SuccessAsync(10);
+
+        // Act
+        var output = await result.BindIfAsync(
+            x => x > 5,
+            async x => {
+                await Task.Delay(1);
+                return Success(x * 2);
+            });
+
+        // Assert
+        Assert.True(output.IsSuccess);
+        Assert.Equal(20, output.Value);
+    }
+
+    [Fact]
+    public async Task BindIfAsync_TaskResult_SyncPredicate_AsyncContinuation_WhenPredicateFalse_ReturnsOriginal()
+    {
+        // Arrange
+        var result = SuccessAsync(3);
         var continuationCalled = false;
 
         // Act
@@ -243,27 +262,8 @@ public class BindIfTests
 
         // Assert
         Assert.True(output.IsSuccess);
-        Assert.Equal(10, output.Value);
+        Assert.Equal(3, output.Value);
         Assert.False(continuationCalled);
-    }
-
-    [Fact]
-    public async Task BindIfAsync_TaskResult_SyncPredicate_AsyncContinuation_WhenPredicateFalse_AppliesContinuation()
-    {
-        // Arrange
-        var result = SuccessAsync(3);
-
-        // Act
-        var output = await result.BindIfAsync(
-            x => x > 5,
-            async x => {
-                await Task.Delay(1);
-                return Success(x * 2);
-            });
-
-        // Assert
-        Assert.True(output.IsSuccess);
-        Assert.Equal(6, output.Value);
     }
 
     [Fact]
@@ -290,10 +290,29 @@ public class BindIfTests
     #region BindIfAsync - Result + Async Predicate + Sync Continuation
 
     [Fact]
-    public async Task BindIfAsync_Result_AsyncPredicate_SyncContinuation_WhenPredicateTrue_ReturnsOriginal()
+    public async Task BindIfAsync_Result_AsyncPredicate_SyncContinuation_WhenPredicateTrue_AppliesContinuation()
     {
         // Arrange
         var result = Success(10);
+
+        // Act
+        var output = await result.BindIfAsync(
+            async x => {
+                await Task.Delay(1);
+                return x > 5;
+            },
+            x => Success(x * 2));
+
+        // Assert
+        Assert.True(output.IsSuccess);
+        Assert.Equal(20, output.Value);
+    }
+
+    [Fact]
+    public async Task BindIfAsync_Result_AsyncPredicate_SyncContinuation_WhenPredicateFalse_ReturnsOriginal()
+    {
+        // Arrange
+        var result = Success(3);
         var continuationCalled = false;
 
         // Act
@@ -309,27 +328,8 @@ public class BindIfTests
 
         // Assert
         Assert.True(output.IsSuccess);
-        Assert.Equal(10, output.Value);
+        Assert.Equal(3, output.Value);
         Assert.False(continuationCalled);
-    }
-
-    [Fact]
-    public async Task BindIfAsync_Result_AsyncPredicate_SyncContinuation_WhenPredicateFalse_AppliesContinuation()
-    {
-        // Arrange
-        var result = Success(3);
-
-        // Act
-        var output = await result.BindIfAsync(
-            async x => {
-                await Task.Delay(1);
-                return x > 5;
-            },
-            x => Success(x * 2));
-
-        // Assert
-        Assert.True(output.IsSuccess);
-        Assert.Equal(6, output.Value);
     }
 
     [Fact]
@@ -359,10 +359,29 @@ public class BindIfTests
     #region BindIfAsync - Task<Result> + Async Predicate + Sync Continuation
 
     [Fact]
-    public async Task BindIfAsync_TaskResult_AsyncPredicate_SyncContinuation_WhenPredicateTrue_ReturnsOriginal()
+    public async Task BindIfAsync_TaskResult_AsyncPredicate_SyncContinuation_WhenPredicateTrue_AppliesContinuation()
     {
         // Arrange
         var result = SuccessAsync(10);
+
+        // Act
+        var output = await result.BindIfAsync(
+            async x => {
+                await Task.Delay(1);
+                return x > 5;
+            },
+            x => Success(x * 2));
+
+        // Assert
+        Assert.True(output.IsSuccess);
+        Assert.Equal(20, output.Value);
+    }
+
+    [Fact]
+    public async Task BindIfAsync_TaskResult_AsyncPredicate_SyncContinuation_WhenPredicateFalse_ReturnsOriginal()
+    {
+        // Arrange
+        var result = SuccessAsync(3);
         var continuationCalled = false;
 
         // Act
@@ -378,27 +397,8 @@ public class BindIfTests
 
         // Assert
         Assert.True(output.IsSuccess);
-        Assert.Equal(10, output.Value);
+        Assert.Equal(3, output.Value);
         Assert.False(continuationCalled);
-    }
-
-    [Fact]
-    public async Task BindIfAsync_TaskResult_AsyncPredicate_SyncContinuation_WhenPredicateFalse_AppliesContinuation()
-    {
-        // Arrange
-        var result = SuccessAsync(3);
-
-        // Act
-        var output = await result.BindIfAsync(
-            async x => {
-                await Task.Delay(1);
-                return x > 5;
-            },
-            x => Success(x * 2));
-
-        // Assert
-        Assert.True(output.IsSuccess);
-        Assert.Equal(6, output.Value);
     }
 
     [Fact]
@@ -428,10 +428,32 @@ public class BindIfTests
     #region BindIfAsync - Result + Async Predicate + Async Continuation
 
     [Fact]
-    public async Task BindIfAsync_Result_AsyncPredicate_AsyncContinuation_WhenPredicateTrue_ReturnsOriginal()
+    public async Task BindIfAsync_Result_AsyncPredicate_AsyncContinuation_WhenPredicateTrue_AppliesContinuation()
     {
         // Arrange
         var result = Success(10);
+
+        // Act
+        var output = await result.BindIfAsync(
+            async x => {
+                await Task.Delay(1);
+                return x > 5;
+            },
+            async x => {
+                await Task.Delay(1);
+                return Success(x * 2);
+            });
+
+        // Assert
+        Assert.True(output.IsSuccess);
+        Assert.Equal(20, output.Value);
+    }
+
+    [Fact]
+    public async Task BindIfAsync_Result_AsyncPredicate_AsyncContinuation_WhenPredicateFalse_ReturnsOriginal()
+    {
+        // Arrange
+        var result = Success(3);
         var continuationCalled = false;
 
         // Act
@@ -448,30 +470,8 @@ public class BindIfTests
 
         // Assert
         Assert.True(output.IsSuccess);
-        Assert.Equal(10, output.Value);
+        Assert.Equal(3, output.Value);
         Assert.False(continuationCalled);
-    }
-
-    [Fact]
-    public async Task BindIfAsync_Result_AsyncPredicate_AsyncContinuation_WhenPredicateFalse_AppliesContinuation()
-    {
-        // Arrange
-        var result = Success(3);
-
-        // Act
-        var output = await result.BindIfAsync(
-            async x => {
-                await Task.Delay(1);
-                return x > 5;
-            },
-            async x => {
-                await Task.Delay(1);
-                return Success(x * 2);
-            });
-
-        // Assert
-        Assert.True(output.IsSuccess);
-        Assert.Equal(6, output.Value);
     }
 
     [Fact]
@@ -504,10 +504,32 @@ public class BindIfTests
     #region BindIfAsync - Task<Result> + Async Predicate + Async Continuation
 
     [Fact]
-    public async Task BindIfAsync_TaskResult_AsyncPredicate_AsyncContinuation_WhenPredicateTrue_ReturnsOriginal()
+    public async Task BindIfAsync_TaskResult_AsyncPredicate_AsyncContinuation_WhenPredicateTrue_AppliesContinuation()
     {
         // Arrange
         var result = SuccessAsync(10);
+
+        // Act
+        var output = await result.BindIfAsync(
+            async x => {
+                await Task.Delay(1);
+                return x > 5;
+            },
+            async x => {
+                await Task.Delay(1);
+                return Success(x * 2);
+            });
+
+        // Assert
+        Assert.True(output.IsSuccess);
+        Assert.Equal(20, output.Value);
+    }
+
+    [Fact]
+    public async Task BindIfAsync_TaskResult_AsyncPredicate_AsyncContinuation_WhenPredicateFalse_ReturnsOriginal()
+    {
+        // Arrange
+        var result = SuccessAsync(3);
         var continuationCalled = false;
 
         // Act
@@ -524,30 +546,8 @@ public class BindIfTests
 
         // Assert
         Assert.True(output.IsSuccess);
-        Assert.Equal(10, output.Value);
+        Assert.Equal(3, output.Value);
         Assert.False(continuationCalled);
-    }
-
-    [Fact]
-    public async Task BindIfAsync_TaskResult_AsyncPredicate_AsyncContinuation_WhenPredicateFalse_AppliesContinuation()
-    {
-        // Arrange
-        var result = SuccessAsync(3);
-
-        // Act
-        var output = await result.BindIfAsync(
-            async x => {
-                await Task.Delay(1);
-                return x > 5;
-            },
-            async x => {
-                await Task.Delay(1);
-                return Success(x * 2);
-            });
-
-        // Assert
-        Assert.True(output.IsSuccess);
-        Assert.Equal(6, output.Value);
     }
 
     [Fact]
@@ -585,12 +585,12 @@ public class BindIfTests
         // Arrange
         var payload = "{\"name\":\"test\"}";
 
-        // Act
+        // Act - If already JSON (TRUE), skip extraction
         var result = Result<string, string>.Success(payload)
             .Map(p => p.TrimStart())
             .BindIf(
-                p => p.StartsWith("{") || p.StartsWith("["),
-                p => ExtractJsonFromPrefix(p));
+                p => !(p.StartsWith("{") || p.StartsWith("[")),  // If NOT JSON
+                p => ExtractJsonFromPrefix(p));                   // Then extract
 
         // Assert
         Assert.True(result.IsSuccess);
@@ -603,12 +603,12 @@ public class BindIfTests
         // Arrange
         var payload = "request:{\"name\":\"test\"}";
 
-        // Act
+        // Act - If NOT JSON (TRUE), extract it
         var result = Result<string, string>.Success(payload)
             .Map(p => p.TrimStart())
             .BindIf(
-                p => p.StartsWith("{") || p.StartsWith("["),
-                p => ExtractJsonFromPrefix(p));
+                p => !(p.StartsWith("{") || p.StartsWith("[")),  // If NOT JSON
+                p => ExtractJsonFromPrefix(p));                   // Then extract
 
         // Assert
         Assert.True(result.IsSuccess);
@@ -621,11 +621,11 @@ public class BindIfTests
         // Arrange
         var user = new TestUser { Id = 1, Name = "John", IsComplete = true };
 
-        // Act
+        // Act - If NOT complete (FALSE), skip enrichment
         var result = await Result<TestUser, string>.Success(user)
             .BindIfAsync(
-                u => u.IsComplete,
-                async u => await EnrichUserAsync(u));
+                u => !u.IsComplete,  // If incomplete
+                async u => await EnrichUserAsync(u));  // Then enrich
 
         // Assert
         Assert.True(result.IsSuccess);
@@ -639,16 +639,54 @@ public class BindIfTests
         // Arrange
         var user = new TestUser { Id = 1, Name = "John", IsComplete = false };
 
-        // Act
+        // Act - If incomplete (TRUE), enrich
         var result = await Result<TestUser, string>.Success(user)
             .BindIfAsync(
-                u => u.IsComplete,
-                async u => await EnrichUserAsync(u));
+                u => !u.IsComplete,  // If incomplete
+                async u => await EnrichUserAsync(u));  // Then enrich
 
         // Assert
         Assert.True(result.IsSuccess);
         Assert.Equal("John", result.Value.Name);
         Assert.Equal("john@example.com", result.Value.Email); // Enriched!
+    }
+
+    [Fact]
+    public async Task BindIfAsync_ConditionalProcessing_ProcessesWhenNeeded()
+    {
+        // Arrange
+        var data = Success(5);
+
+        // Act - If needs processing (TRUE), process it
+        var result = await data.BindIfAsync(
+            d => d < 10,  // Needs processing
+            async d => {
+                await Task.Delay(1);
+                return Success(d * 10);  // Process
+            });
+
+        // Assert
+        Assert.True(result.IsSuccess);
+        Assert.Equal(50, result.Value);  // Processed: 5 * 10
+    }
+
+    [Fact]
+    public async Task BindIfAsync_ConditionalProcessing_SkipsWhenNotNeeded()
+    {
+        // Arrange
+        var data = Success(15);
+
+        // Act - If needs processing (FALSE), skip
+        var result = await data.BindIfAsync(
+            d => d < 10,  // Doesn't need processing
+            async d => {
+                await Task.Delay(1);
+                return Success(d * 10);  // Would process
+            });
+
+        // Assert
+        Assert.True(result.IsSuccess);
+        Assert.Equal(15, result.Value);  // Unchanged
     }
 
     #endregion

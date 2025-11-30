@@ -8,7 +8,7 @@
 
         <!-- Package Information -->
         <PackageId>BindSharp</PackageId>
-        <Version>1.4.0</Version>
+        <Version>1.4.1</Version>
         <Authors>Gianfranco Díaz</Authors>
         <Company>Gianfranco Díaz</Company>
         <Description>A lightweight functional programming library for .NET that provides Railway-Oriented Programming patterns with Result types. Includes comprehensive async support for composing operations that can succeed or fail.</Description>
@@ -27,7 +27,7 @@
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <PackageIcon>icon.png</PackageIcon>
         <PackageReleaseNotes>
-            Version 1.4.0 adds conditional branching to functional pipelines:
+            Version 1.4.1 adds conditional branching to functional pipelines:
             - Added BindIf/BindIfAsync for conditional processing without breaking chains
             - Full async support with 7 overloads covering all async scenarios
             - Async predicate support for database-backed conditional logic
