@@ -8,17 +8,17 @@
 
         <!-- Package Information -->
         <PackageId>BindSharp</PackageId>
-        <Version>2.1.0</Version>
+        <Version>2.2.0</Version>
         <Authors>Gianfranco Díaz</Authors>
         <Company>Gianfranco Díaz</Company>
         <Description>
             Lightweight functional programming library for .NET with Railway-Oriented Programming.
 
-            v2.0 adds Do/DoAsync for dual side effects and improves API organization.
+            v2.2.0 adds finally support to Try/TryAsync for guaranteed cleanup in functional pipelines.
 
-            ⚠️ BREAKING CHANGES - See migration guide: https://github.com/BindSharp/BindSharp/blob/main/ReleaseNotes/MIGRATION_V2.md
+            Previous versions: v2.0 adds Do/DoAsync for dual side effects and improves API organization.
         </Description>
-        <PackageTags>csharp;dotnet;functional-programming;result;result-type;either;error-handling;railway-oriented-programming;async;validation;pipeline;monad;exception-handling;try-catch-alternative;unit;equality;implicit-conversion;conditional-branching;bindif;bind;map;tap;match;bindasync;mapasync;tapasync;matchasync</PackageTags>
+        <PackageTags>csharp;dotnet;functional-programming;result;result-type;either;error-handling;railway-oriented-programming;async;validation;pipeline;monad;exception-handling;try-catch-alternative;unit;equality;implicit-conversion;conditional-branching;bindif;bind;map;tap;match;bindasync;mapasync;tapasync;matchasync;finally;resource-management</PackageTags>
         <PackageLicenseExpression>MPL-2.0</PackageLicenseExpression>
 
         <!-- Repository Information -->
@@ -33,12 +33,25 @@
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <PackageIcon>icon.png</PackageIcon>
         <PackageReleaseNotes>
-            ## v2.1.0
+            ## v2.2.0 - Finally Support
 
-            ### License Change
-            - Changed license from LGPL-3.0-or-later to MPL-2.0
+            ### New Features
+            - finally parameter for Try&lt;T, TError&gt; - guaranteed cleanup with custom error factory
+            - finally parameter for Try&lt;T&gt; - guaranteed cleanup with exception-first
+            - finally parameter for TryAsync&lt;T, TError&gt; - async guaranteed cleanup with custom error factory
+            - finally parameter for TryAsync&lt;T&gt; - async guaranteed cleanup with exception-first
 
-            See MIGRATION_V2.md for v2.0.0 changes.
+            ### Use Cases
+            - Lock acquire/release patterns
+            - Connection open/close lifecycle
+            - Metrics recording on all code paths
+            - Resource reservation/release
+
+            ### Backward Compatibility
+            - 100% backward compatible - all existing code works unchanged
+            - finally parameter is optional (defaults to null)
+
+            See RELEASE_NOTES_2_2_0.md for detailed examples and migration guide.
         </PackageReleaseNotes>
     </PropertyGroup>
 
