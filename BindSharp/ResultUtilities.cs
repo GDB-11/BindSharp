@@ -55,7 +55,7 @@ public static class Result
     /// <typeparam name="TError">The type of the error value.</typeparam>
     /// <param name="operation">The operation that may throw an exception.</param>
     /// <param name="errorFactory">A function that converts an exception to an error value.</param>
-    /// <param name="@finally">Optional action that always executes, regardless of success or failure.</param>
+    /// <param name="finally">Optional action that always executes, regardless of success or failure.</param>
     /// <returns>
     /// A successful result containing the operation's return value, 
     /// or a failure result containing the converted exception.
@@ -105,7 +105,7 @@ public static class Result
     /// <typeparam name="TError">The type of the error value.</typeparam>
     /// <param name="operation">The async operation that may throw an exception.</param>
     /// <param name="errorFactory">A function that converts an exception to an error value.</param>
-    /// <param name="@finally">Optional async action that always executes, regardless of success or failure.</param>
+    /// <param name="finally">Optional async action that always executes, regardless of success or failure.</param>
     /// <returns>
     /// A task containing a successful result with the operation's return value,
     /// or a failure result containing the converted exception.
@@ -146,7 +146,7 @@ public static class Result
     /// </summary>
     /// <typeparam name="T">The type of the success value.</typeparam>
     /// <param name="operation">The operation that may throw an exception.</param>
-    /// <param name="@finally">Optional action that always executes, regardless of success or failure.</param>
+    /// <param name="finally">Optional action that always executes, regardless of success or failure.</param>
     /// <returns>
     /// A successful result containing the operation's return value, 
     /// or a failure result containing the exception.
@@ -205,7 +205,7 @@ public static class Result
     /// </summary>
     /// <typeparam name="T">The type of the success value.</typeparam>
     /// <param name="operation">The async operation that may throw an exception.</param>
-    /// <param name="@finally">Optional async action that always executes, regardless of success or failure.</param>
+    /// <param name="finally">Optional async action that always executes, regardless of success or failure.</param>
     /// <returns>
     /// A task containing a successful result with the operation's return value,
     /// or a failure result containing the exception.
